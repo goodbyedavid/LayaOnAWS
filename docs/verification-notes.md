@@ -113,7 +113,7 @@ large image pull rather than model download dominates first-start time.
 
 | Item | Measured value |
 | --- | --- |
-| Instance ID | `i-0e5d6e91468746eb5` |
+| Instance ID | `i-EXAMPLE` (terminated) |
 | Instance type | `g4dn.xlarge` |
 | Availability Zone | `us-west-2a` |
 | AMI ID | `ami-0d5c3753473c66011` |
@@ -250,7 +250,7 @@ After deploying capacity zero:
 ```
 
 The Auto Scaling group reported desired capacity zero with no instances,
-instance `i-0e5d6e91468746eb5` reached `terminated`, and
+instance `i-EXAMPLE` (terminated) reached `terminated`, and
 `describe-volumes` returned an empty list, confirming the 100 GiB root volume
 was deleted with the instance.
 No `g4dn.xlarge` remains in any billable state anywhere in the region.

@@ -9,3 +9,4 @@ live-verification.txt
 cdk.out.*/
 __pycache__/
 *.pyc
+.DS_Store
