@@ -1,192 +1,135 @@
-# Most of your AI spend is classification wearing generation's clothes
+# Replacing Jev with Laya on AWS
 
-A large share of production AI work is not writing.
-It is deciding: which team owns this ticket, is this refund urgent, does this
-message need a human, which of four next steps should the agent take.
+Jev is a hosted API for fast typed decisions: give it a state and a set of
+questions with fixed options, and it returns a structured answer with a
+probability per option instead of prose. It is a good fit for the work that fills
+production systems, like routing a ticket to a team, judging whether a refund is
+urgent, or deciding which of four steps an agent takes next.
 
-These decisions are small and closed.
-There is a fixed option set, a short input, and no prose to produce.
-Yet the default implementation sends each one to a general-purpose language
-model and parses the answer back out of generated text, which means paying
-generation latency and generation prices to pick one of four labels.
+Two things stop teams from using it.
 
-This repository deploys a specialised alternative on AWS and measures it.
-The numbers are good enough to be interesting and the limitations are sharp
-enough that you should read them before deploying anything.
+Access is gated. Jev is a closed model behind an API, currently with a waiting
+list, so adoption is not a decision your team gets to make on its own schedule.
 
-## Laya, and the category
+Data leaves your domain. Every decision is made over content you send to a third
+party, and that content is usually support tickets, user messages, or internal
+workflow state. For a regulated customer this alone ends the conversation.
 
-Laya is an open-source inference server, Apache-2.0, built for exactly these
-typed decisions.
-It returns a structured answer with a probability per option, not text.
+Laya is an open-source implementation of the same thing, Apache-2.0, that speaks
+the same wire protocol. This repository runs it on AWS in your own account for
+about 53 cents an hour while it is up, and nothing while it is not.
 
-It speaks the same `POST /v1/systemone` wire protocol as Jev, a hosted API in
-this category from TypeSafe.
-Upstream's benchmarks reference Jev 1.13.0 at an independently measured p50 of
-236 to 276 ms, and are explicit that Jev's numbers are "third-party published,
-never measured here" because they had no API access.
-Nothing here is a measured comparison against Jev either.
-What Jev establishes is that the category has a defined protocol and a hosted
-option, which is the right answer for plenty of customers.
+## The same API
 
-The protocol match is the load-bearing fact.
-A client written against the hosted API reaches your own endpoint by changing a
-base URL, and nothing else.
-That is why the architecture here keeps a pass-through front door instead of
-anything that rewrites the request path.
-Change the path or the auth scheme and you have thrown away the only cheap part
-of the migration.
+Laya serves `POST /v1/systemone` with the same request and response shape as the
+hosted API. This repository preserves that path end to end, so an existing client
+moves by changing one value:
 
-## What it does on one cheap GPU
+```diff
+- baseUrl: "https://api.typesafe.example/v1"
++ baseUrl: "https://abc123.execute-api.us-west-2.amazonaws.com"
+```
 
-Measured on a single `g4dn.xlarge` with a Tesla T4, PyTorch 2.14.0, twenty
-samples per cell after warm-up, called over loopback on the host.
+The `Authorization: Bearer` header works the same way, against a token generated
+in AWS Secrets Manager instead of issued to you. Nothing else in your client
+changes: not the request body, not the response parsing, not the auth scheme.
 
-| Questions per call | english | multilingual |
+That is the whole migration, and it is why the architecture here uses a
+pass-through front door rather than anything that rewrites the request path.
+
+## Is it actually an equal swap
+
+On quality, mostly yes. These are upstream's measurements, not ours, and Jev's
+column is third-party published rather than measured by anyone in this chain.
+
+| Dataset | Laya | Jev |
 | --- | --- | --- |
-| 1 | 32.73 ms | 27.73 ms |
-| 5 | 42.27 ms | 30.13 ms |
-| 10 | 71.27 ms | 36.04 ms |
-| 50 | 285.84 ms | 142.45 ms |
+| AG News, 4 labels | 0.950 | 0.910 |
+| DAIR Emotion, 6 labels | 0.595 | 0.480 |
+| typed-decisions | 0.766 | 0.727 |
+| banking77, 77 labels | 0.425 | 0.870 |
 
-At 50 questions in one request, multilingual costs 2.85 ms per question and
-sustains 351 questions per second.
-Both models stay resident in 4,136 MiB of the T4's 15,360 MiB, so the cheapest
-current-generation inference GPU is oversized for this.
+Three of those favour Laya. The fourth is the boundary of the claim, and it is
+worth stating plainly rather than burying: **Laya is not a replacement for
+many-label classification.** Options in a question share a fixed token budget, so
+once you have dozens of labels each one gets too few tokens to stay distinct.
+Upstream's own guidance is to keep choice questions under about twenty options.
+Under that ceiling this is a swap. Above it, it is not, and no amount of
+infrastructure changes that.
 
-Those batched figures run 2.0 to 2.7 times faster than upstream publishes, and
-the throughput sits above the top of upstream's stated 103 to 332 range.
-The likely cause is a Triton dispatch path that PyTorch 2.14 reaches and the
-older pin did not, which fits the shape of the result: single-question latency
-is unchanged while batched latency improves sharply.
-That is a hypothesis, not an attribution, because both PyTorch versions were
-never run through the same sweep.
+Two smaller cautions. The typed-decisions 0.766 comes from a checkpoint
+fine-tuned on that benchmark's own training split, so treat it as generous.
+And test non-English traffic yourself before trusting it, because upstream
+reports cases where accuracy collapses while confidence stays high.
 
-Put the managed HTTPS front door in front and add a flat 30 ms.
-Single-question english goes from 32.62 to 64.38 ms at the p50.
-The penalty is fixed, so it shrinks as a proportion the moment you batch.
+On speed, Laya is faster, though not by the margin a naive comparison suggests.
+Jev is independently reported at a p50 of 236 to 276 ms. A single question
+against this deployment answers in 64 ms measured at the endpoint, including TLS
+and both AWS hops, or 33 ms measured at the container. Batched, it reaches 351
+questions per second on one GPU.
 
-## Where it breaks
+Those are our numbers under our conditions and not a reproduction of anyone's
+benchmark. Full method and caveats are in
+[verification-notes.md](verification-notes.md).
 
-Upstream measures Laya at 0.425 on banking77, a 77-label intent dataset,
-against a published Jev figure of 0.870.
-They do not bury this.
-They call it "the one clear loss, and it is architectural" and give the
-mechanism: options in a choice question share a fixed token budget, so at 77
-options each description gets roughly four tokens and the options stop being
-distinguishable.
-Two different checkpoints score identically, which looks like a budget ceiling
-rather than a capability gap.
+## What it costs
 
-Their guidance follows: keep choice questions under about twenty options.
-So if your use case is many-class intent detection, this is the wrong tool and
-no amount of infrastructure will fix it.
-Routing among a handful of teams is what it is good at.
+One `g4dn.xlarge` with an NVIDIA T4 runs Laya with room to spare, at $0.526 per
+hour in us-west-2. Both model checkpoints occupy 4.1 GiB of the card's 15.4 GiB.
 
-The live deployment produced a matching signal.
-On startup Laya warned that the checkpoint ships an out-of-range temperature for
-the `choice:11+` bucket and clamped it, and upstream confirms that is the only
-bucket the clamp touches.
-The high-option-count path is simply the least mature part of the system.
+The interesting number is not the hourly rate, it is where self-hosting crosses
+under per-request pricing for your volume. A dedicated GPU is poor value at low
+volume and becomes the cheaper option as volume grows, and where that line sits
+depends entirely on your traffic.
 
-Two more things to read before quoting any accuracy number.
-The flagship 0.766 on typed-decisions, against Jev's 0.727, comes from a
-checkpoint fine-tuned on that benchmark's own training split, and upstream
-discloses that base checkpoints fall below the majority-class baseline there.
-Upstream also discloses training-set contamination behind its spam and phishing
-results.
-On the same typed-decisions task, Jev leads on soft accuracy and on calibration
-error, and is more stable to option ordering at twenty options.
-This is a mixed picture, not a sweep.
+So the stack ships at zero GPU capacity. Launching one is always explicit, and
+returning to zero costs nothing but a three minute cold start next time. You can
+measure your own crossover before committing to anything, including reaching the
+conclusion that the hosted API is the better deal.
 
-For non-English traffic the risk is concrete: upstream reports 0.000 accuracy at
-0.952 confidence on Khmer.
-Confidence being high tells you nothing there.
-This repository measured multilingual latency but never multilingual quality, so
-treat that path as unproven until you test it on your own labels.
+Adding the public HTTPS endpoint costs a further $16 to $18 a month for the load
+balancer behind it, billed even while the GPU is at zero, which is why that is
+opt-in too.
 
-## Why run it yourself
+## Running it
 
-A hosted API already exists, so self-hosting has to earn the work.
-Usually it earns it on one of three grounds.
+```bash
+npm install
+npm run build
+npm run deploy:gpu     # one g4dn.xlarge, private
+```
 
-The first is data.
-These decisions run over support tickets and user messages, which is frequently
-regulated or contractually restricted.
-Inference inside the customer's own VPC, in their region, with no third-party
-egress, closes a review that otherwise kills the project outright.
+That gives you a working Laya reachable through AWS Systems Manager, with no
+inbound network access at all and no public endpoint. It is the right place to
+start, because it costs nothing while idle and proves the path.
 
-The second is arithmetic.
-Per-request pricing is excellent at low volume and becomes the dominant line
-item at high volume.
-A dedicated T4 is $0.526 per hour, roughly $380 a month if left running, and at
-the batched throughput above the crossover arrives sooner than people expect.
-The stack deploys at zero GPU capacity precisely so a customer can find their own
-crossover before committing to anything.
+When you want an endpoint your application can call:
 
-The third is control.
-The weights and the server are open source, so a component sitting on the
-critical path of every inbound ticket can be pinned, audited, and kept running
-regardless of what the upstream project does next.
+```bash
+CDK_DOCKER=finch npx cdk deploy LayaVerificationStack \
+  -c capacity=1 -c publicEndpoint=true --require-approval never
+```
 
-## What the design cost to get right
+API Gateway supplies HTTPS on a generated hostname with a certificate that
+already chains to a public root, so **no domain or DNS setup is required**. The
+load balancer behind it is internal and nothing in the data path is reachable
+from the internet. If you do own a domain you can add it later as an optional
+front door.
 
-Two decisions are worth stealing, and one mistake is worth not repeating.
+Requests never leave your account. The model weights sit on an encrypted volume
+in your VPC, inference happens on your instance in your chosen region, and the
+only outbound traffic is a one-time checkpoint download on first start.
 
-Zero GPU capacity is the default, and launching one is always explicit.
-A reference architecture that strangers clone should not quietly bill $380 a
-month, and the price of that safety is a three minute cold start.
+See [architecture.md](architecture.md) for the design and its limits.
 
-The public endpoint is opt-in and needs no domain.
-An internet-facing load balancer with its own certificate was built first and
-then abandoned, because no certificate authority will issue for a hostname you do
-not control, which made a Route 53 hosted zone a hard prerequisite for every
-person cloning the repo.
-An API Gateway HTTP API removes that entirely: it serves HTTPS on a generated
-hostname with a certificate that already chains to a public root, the load
-balancer behind it is internal, and a custom domain becomes an optional upgrade
-to the front door rather than a precondition for deploying at all.
+## Deciding
 
-Rate limiting is the control that matters, because Laya serialises inference
-through a single worker and an unthrottled public endpoint in front of a
-single-worker server is trivial to saturate.
-API Gateway enforces it, since AWS WAF cannot attach to an HTTP API.
-
-The mistake: PyTorch 2.14 dispatches through a Triton kernel that is compiled at
-runtime, so the container needs a C compiler.
-Without one the server starts, loads both checkpoints, answers `/health`, reports
-healthy to the orchestrator, and then fails every single inference request with a
-deliberately non-leaking error.
-Installing `gcc` alone is not enough, because `--no-install-recommends` skips
-`libc6-dev` and the failure just moves from a missing compiler to a missing
-`stdlib.h`.
-A health check that passes while the service is completely broken is the worst
-category of failure, and having already solved it is most of what a reference
-architecture is for.
-
-That JIT also has a runtime cost: the first authenticated request after a
-container start took 2.98 seconds against 0.297 warm.
-The cache now lives in the mounted model volume, so it is paid once per host.
-
-## Should you use this
-
-Deploy it if you are making a high volume of small typed decisions, under about
-twenty options each, and either data residency or per-request cost is pushing you
-off a hosted API.
-Measure it against your own labels, because the accuracy numbers above are
-upstream's and the ones that matter are yours.
-
-Do not deploy it for many-class intent detection, for low volume where hosted
-will be cheaper and simpler, for anything needing world knowledge or multi-step
-reasoning, or for non-English production traffic you have not tested.
-And be clear-eyed that this is an independent open-source project with no vendor
+Replace Jev with this if you are blocked on access, or if inference over your
+customers' data cannot leave your account, or if per-request pricing is becoming
+your dominant line item. Keep your questions under about twenty options,
+validate against your own labels rather than anyone's published benchmark, and be
+clear that you are taking on an independent open-source project with no vendor
 support contract behind it.
 
-One unresolved item, in the interest of not overselling the numbers.
-Upstream publishes 39.5 ms for single-question english; this repository measures
-32.62 ms on the same GPU model.
-That was initially suspected to be the PyTorch version, and it is not: the same
-measurement gives 32.95 ms on the older pin, which is statistically identical.
-The two harnesses are measuring different things.
-Every figure here is this repository's own measurement under the conditions
-stated, and none of it is a reproduction of upstream's table.
+If you have low volume, no data residency constraint, and Jev access already,
+the hosted API is simpler and you should keep using it.

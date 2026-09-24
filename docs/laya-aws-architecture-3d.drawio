@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-09-24T00:00:00.000Z" agent="Codex" version="24.7.17" type="device">
+  <diagram id="laya-aws-3d" name="Laya on AWS - 3D Architecture">
+    <mxGraphModel dx="2400" dy="1400" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2400" pageHeight="1400" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="background" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="2400" height="1400" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="&lt;b&gt;Laya on AWS - 3D Isometric Architecture&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#5F6B7A&quot;&gt;Verified public and private access paths | us-west-2 | 2026-09-24 | v1.0&lt;/font&gt;" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=22;fontColor=#232F3E;spacing=8;" vertex="1" parent="1">
+          <mxGeometry x="40" y="25" width="900" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="aws-account" value="&lt;b&gt;AWS account 816069166775&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#687078&quot;&gt;Region: us-west-2&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;container=1;dropTarget=1;collapsible=0;recursiveResize=0;fillColor=#FFFFFF;fillOpacity=60;strokeColor=#232F3E;strokeWidth=3;fontSize=16;fontColor=#232F3E;fontStyle=1;align=left;verticalAlign=top;spacingTop=10;spacingLeft=12;" vertex="1" parent="1">
+          <mxGeometry x="390" y="115" width="1580" height="1190" as="geometry" />
+        </mxCell>
+        <mxCell id="vpc" value="&lt;b&gt;Amazon VPC&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#6B7280&quot;&gt;Two public subnets across two Availability Zones; no NAT gateway&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;container=1;dropTarget=1;collapsible=0;recursiveResize=0;fillColor=#E9E2F8;fillOpacity=38;strokeColor=#8C4FFF;strokeWidth=3;fontSize=15;fontColor=#4B2E83;fontStyle=1;align=left;verticalAlign=top;spacingTop=10;spacingLeft=12;" vertex="1" parent="aws-account">
+          <mxGeometry x="430" y="185" width="1090" height="765" as="geometry" />
+        </mxCell>
+        <mxCell id="subnet-a" value="&lt;b&gt;Public subnet - AZ A&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;container=1;dropTarget=1;collapsible=0;recursiveResize=0;fillColor=#F4F0FC;fillOpacity=45;strokeColor=#BFA9EA;strokeWidth=2;dashed=1;dashPattern=8 6;fontSize=13;fontColor=#5B4384;fontStyle=1;align=left;verticalAlign=top;spacingTop=8;spacingLeft=10;" vertex="1" parent="vpc">
+          <mxGeometry x="70" y="130" width="440" height="525" as="geometry" />
+        </mxCell>
+        <mxCell id="subnet-b" value="&lt;b&gt;Public subnet - AZ B&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;container=1;dropTarget=1;collapsible=0;recursiveResize=0;fillColor=#F4F0FC;fillOpacity=45;strokeColor=#BFA9EA;strokeWidth=2;dashed=1;dashPattern=8 6;fontSize=13;fontColor=#5B4384;fontStyle=1;align=left;verticalAlign=top;spacingTop=8;spacingLeft=10;" vertex="1" parent="vpc">
+          <mxGeometry x="580" y="130" width="440" height="525" as="geometry" />
+        </mxCell>
+        <mxCell id="asg-boundary" value="&lt;b&gt;ECS EC2 capacity provider + Auto Scaling group&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#8A4B08&quot;&gt;Desired capacity 0 by default; maximum 1 GPU host; may launch in either AZ&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;container=1;dropTarget=1;collapsible=0;recursiveResize=0;fillColor=#FFF3E0;fillOpacity=82;strokeColor=#ED7100;strokeWidth=3;fontSize=14;fontColor=#7A3E00;fontStyle=1;align=left;verticalAlign=top;spacingTop=10;spacingLeft=12;" vertex="1" parent="vpc">
+          <mxGeometry x="170" y="350" width="750" height="265" as="geometry" />
+        </mxCell>
+        <mxCell id="client" value="&lt;b&gt;Jev-compatible client&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#5F6B7A&quot;&gt;Internet HTTPS request&lt;/font&gt;" style="shape=mxgraph.aws3d.application;fillColor=#527FFF;strokeColor=#FFFFFF;strokeWidth=2;sketch=0;html=1;fontColor=#232F3E;fontSize=13;fontStyle=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;aspect=fixed;overflow=visible;" vertex="1" parent="1">
+          <mxGeometry x="85" y="370" width="105" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="operator" value="&lt;b&gt;Operator&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#5F6B7A&quot;&gt;AWS CLI + Session Manager&lt;/font&gt;" style="shape=mxgraph.aws3d.application;fillColor=#5F6B7A;strokeColor=#FFFFFF;strokeWidth=2;sketch=0;html=1;fontColor=#232F3E;fontSize=13;verticalLabelPosition=bottom;verticalAlign=top;align=center;aspect=fixed;overflow=visible;" vertex="1" parent="1">
+          <mxGeometry x="85" y="965" width="105" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="route53" value="&lt;b&gt;Amazon Route 53&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#7A5A00&quot;&gt;Optional DNS alias&lt;/font&gt;" style="shape=mxgraph.aws3d.application;fillColor=#8C4FFF;strokeColor=#FFFFFF;strokeWidth=2;sketch=0;html=1;fontColor=#232F3E;fontSize=12;verticalLabelPosition=bottom;verticalAlign=top;align=center;aspect=fixed;overflow=visible;" vertex="1" parent="aws-account">
+          <mxGeometry x="55" y="70" width="82" height="82" as="geometry" />
+        </mxCell>
+        <mxCell id="acm" value="&lt;b&gt;AWS Certificate Manager&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#7A5A00&quot;&gt;Optional TLS certificate&lt;/font&gt;" style="shape=mxgraph.aws3d.application;fillColor=#DD344C;strokeColor=#FFFFFF;strokeWidth=2;sketch=0;html=1;fontColor=#232F3E;fontSize=12;verticalLabelPosition=bottom;verticalAlign=top;align=center;aspect=fixed;overflow=visible;" vertex="1" parent="aws-account">
+          <mxGeometry x="230" y="70" width="82" height="82" as="geometry" />
+        </mxCell>
+        <mxCell id="optional-note" value="&lt;b&gt;Optional custom domain&lt;/b&gt;&lt;br&gt;Code complete; not live-tested" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF8D6;strokeColor=#C99000;strokeWidth=2;dashed=1;fontSize=12;fontColor=#7A5A00;align=center;verticalAlign=middle;" vertex="1" parent="aws-account">
+          <mxGeometry x="40" y="165" width="300" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="api-gateway" value="&lt;b&gt;Amazon API Gateway&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#5F6B7A&quot;&gt;HTTP API · generated HTTPS endpoint&lt;br&gt;request throttling&lt;/font&gt;" style="shape=mxgraph.aws3d.application;fillColor=#E7157B;strokeColor=#FFFFFF;strokeWidth=2;sketch=0;html=1;fontColor=#232F3E;fontSize=13;verticalLabelPosition=bottom;verticalAlign=top;align=center;aspect=fixed;overflow=visible;" vertex="1" parent="aws-account">
+          <mxGeometry x="45" y="300" width="105" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="vpc-link" value="&lt;b&gt;API Gateway VPC Link&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#5F6B7A&quot;&gt;private integration&lt;/font&gt;" style="shape=mxgraph.aws3d.application;fillColor=#8C4FFF;strokeColor=#FFFFFF;strokeWidth=2;sketch=0;html=1;fontColor=#232F3E;fontSize=13;verticalLabelPosition=bottom;verticalAlign=top;align=center;aspect=fixed;overflow=visible;" vertex="1" parent="aws-account">
+          <mxGeometry x="245" y="300" width="105" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="alb" value="&lt;b&gt;Internal Application Load Balancer&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#5F6B7A&quot;&gt;Listener :80 · spans both subnets&lt;/font&gt;" style="shape=mxgraph.aws3d.application;fillColor=#8C4FFF;strokeColor=#FFFFFF;strokeWidth=2;sketch=0;html=1;fontColor=#232F3E;fontSize=13;verticalLabelPosition=bottom;verticalAlign=top;align=center;aspect=fixed;overflow=visible;" vertex="1" parent="vpc">
+          <mxGeometry x="475" y="115" width="120" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="alb-az-a" value="ALB node&lt;br&gt;AZ A" style="shape=mxgraph.aws3d.application;fillColor=#A78BDA;strokeColor=#FFFFFF;strokeWidth=2;sketch=0;html=1;fontColor=#4B2E83;fontSize=11;verticalLabelPosition=bottom;verticalAlign=top;align=center;aspect=fixed;overflow=visible;opacity=75;" vertex="1" parent="subnet-a">
+          <mxGeometry x="280" y="120" width="62" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="alb-az-b" value="ALB node&lt;br&gt;AZ B" style="shape=mxgraph.aws3d.application;fillColor=#A78BDA;strokeColor=#FFFFFF;strokeWidth=2;sketch=0;html=1;fontColor=#4B2E83;fontSize=11;verticalLabelPosition=bottom;verticalAlign=top;align=center;aspect=fixed;overflow=visible;opacity=75;" vertex="1" parent="subnet-b">
+          <mxGeometry x="85" y="120" width="62" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="ec2-gpu" value="&lt;b&gt;Amazon EC2 GPU host&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#5F6B7A&quot;&gt;0..1 × g4dn.xlarge · NVIDIA T4&lt;br&gt;IMDSv2 · encrypted gp3&lt;/font&gt;" style="shape=mxgraph.aws3d.application;fillColor=#ED7100;strokeColor=#FFFFFF;strokeWidth=2;sketch=0;html=1;fontColor=#232F3E;fontSize=12;verticalLabelPosition=bottom;verticalAlign=top;align=center;aspect=fixed;overflow=visible;" vertex="1" parent="asg-boundary">
+          <mxGeometry x="80" y="82" width="105" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="ecs-task" value="&lt;b&gt;Amazon ECS task&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#5F6B7A&quot;&gt;bridge mode · host port 8000&lt;br&gt;1 GPU reserved&lt;/font&gt;" style="shape=mxgraph.aws3d.application;fillColor=#ED7100;strokeColor=#FFFFFF;strokeWidth=2;sketch=0;html=1;fontColor=#232F3E;fontSize=12;verticalLabelPosition=bottom;verticalAlign=top;align=center;aspect=fixed;overflow=visible;" vertex="1" parent="asg-boundary">
+          <mxGeometry x="320" y="82" width="105" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="laya-api" value="&lt;b&gt;Laya 0.3.11 API&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#5F6B7A&quot;&gt;Jev-compatible inference&lt;br&gt;bearer-token protected&lt;/font&gt;" style="shape=mxgraph.aws3d.application;fillColor=#7AA116;strokeColor=#FFFFFF;strokeWidth=2;sketch=0;html=1;fontColor=#232F3E;fontSize=12;verticalLabelPosition=bottom;verticalAlign=top;align=center;aspect=fixed;overflow=visible;" vertex="1" parent="asg-boundary">
+          <mxGeometry x="560" y="82" width="105" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="igw" value="&lt;b&gt;Internet gateway&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#5F6B7A&quot;&gt;outbound model download&lt;/font&gt;" style="shape=mxgraph.aws3d.application;fillColor=#8C4FFF;strokeColor=#FFFFFF;strokeWidth=2;sketch=0;html=1;fontColor=#232F3E;fontSize=12;verticalLabelPosition=bottom;verticalAlign=top;align=center;aspect=fixed;overflow=visible;" vertex="1" parent="vpc">
+          <mxGeometry x="935" y="650" width="88" height="88" as="geometry" />
+        </mxCell>
+        <mxCell id="hf" value="&lt;b&gt;Hugging Face Hub&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#5F6B7A&quot;&gt;model checkpoints&lt;/font&gt;" style="shape=mxgraph.aws3d.application;fillColor=#FFD21E;strokeColor=#FFFFFF;strokeWidth=2;sketch=0;html=1;fontColor=#232F3E;fontSize=13;verticalLabelPosition=bottom;verticalAlign=top;align=center;aspect=fixed;overflow=visible;" vertex="1" parent="1">
+          <mxGeometry x="2145" y="915" width="105" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="secrets" value="&lt;b&gt;AWS Secrets Manager&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#5F6B7A&quot;&gt;Laya bearer token&lt;/font&gt;" style="shape=mxgraph.aws3d.application;fillColor=#DD344C;strokeColor=#FFFFFF;strokeWidth=2;sketch=0;html=1;fontColor=#232F3E;fontSize=12;verticalLabelPosition=bottom;verticalAlign=top;align=center;aspect=fixed;overflow=visible;" vertex="1" parent="aws-account">
+          <mxGeometry x="215" y="995" width="82" height="82" as="geometry" />
+        </mxCell>
+        <mxCell id="cloudwatch" value="&lt;b&gt;Amazon CloudWatch Logs&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#5F6B7A&quot;&gt;7-day retention&lt;/font&gt;" style="shape=mxgraph.aws3d.application;fillColor=#E7157B;strokeColor=#FFFFFF;strokeWidth=2;sketch=0;html=1;fontColor=#232F3E;fontSize=12;verticalLabelPosition=bottom;verticalAlign=top;align=center;aspect=fixed;overflow=visible;" vertex="1" parent="aws-account">
+          <mxGeometry x="380" y="995" width="82" height="82" as="geometry" />
+        </mxCell>
+        <mxCell id="ecr" value="&lt;b&gt;Amazon ECR&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#5F6B7A&quot;&gt;Laya container image&lt;/font&gt;" style="shape=mxgraph.aws3d.application;fillColor=#ED7100;strokeColor=#FFFFFF;strokeWidth=2;sketch=0;html=1;fontColor=#232F3E;fontSize=12;verticalLabelPosition=bottom;verticalAlign=top;align=center;aspect=fixed;overflow=visible;" vertex="1" parent="aws-account">
+          <mxGeometry x="545" y="995" width="82" height="82" as="geometry" />
+        </mxCell>
+        <mxCell id="s3" value="&lt;b&gt;Amazon S3&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#5F6B7A&quot;&gt;ALB access logs · 30 days&lt;/font&gt;" style="shape=mxgraph.aws3d.application;fillColor=#7AA116;strokeColor=#FFFFFF;strokeWidth=2;sketch=0;html=1;fontColor=#232F3E;fontSize=12;verticalLabelPosition=bottom;verticalAlign=top;align=center;aspect=fixed;overflow=visible;" vertex="1" parent="aws-account">
+          <mxGeometry x="710" y="995" width="82" height="82" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm" value="&lt;b&gt;AWS Systems Manager&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#5F6B7A&quot;&gt;Session Manager port forwarding&lt;/font&gt;" style="shape=mxgraph.aws3d.application;fillColor=#E7157B;strokeColor=#FFFFFF;strokeWidth=2;sketch=0;html=1;fontColor=#232F3E;fontSize=12;verticalLabelPosition=bottom;verticalAlign=top;align=center;aspect=fixed;overflow=visible;" vertex="1" parent="aws-account">
+          <mxGeometry x="50" y="995" width="82" height="82" as="geometry" />
+        </mxCell>
+        <mxCell id="security-note" value="&lt;b&gt;Network and host controls&lt;/b&gt;&lt;br&gt;VPC Link SG → ALB :80&lt;br&gt;ALB SG → GPU host :8000&lt;br&gt;No CIDR ingress rules&lt;br&gt;Encrypted model, root, and Triton cache volumes" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FDECEF;strokeColor=#DD344C;strokeWidth=2;fontSize=12;fontColor=#7B1E2C;align=left;verticalAlign=middle;spacing=10;" vertex="1" parent="aws-account">
+          <mxGeometry x="875" y="975" width="315" height="145" as="geometry" />
+        </mxCell>
+        <mxCell id="verification-note" value="&lt;b&gt;Measured deployment state&lt;/b&gt;&lt;br&gt;Public HTTPS and private SSM paths verified&lt;br&gt;Laya 0.3.11 · PyTorch 2.14.0+cu126 · NVIDIA Tesla T4&lt;br&gt;Live runs must return ECS/ASG capacity to zero" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EAF6E3;strokeColor=#7AA116;strokeWidth=2;fontSize=12;fontColor=#39520B;align=left;verticalAlign=middle;spacing=10;" vertex="1" parent="aws-account">
+          <mxGeometry x="1220" y="975" width="320" height="145" as="geometry" />
+        </mxCell>
+        <mxCell id="legend" value="&lt;b&gt;Legend&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#527FFF&quot;&gt;━━&lt;/font&gt; Public request path&lt;br&gt;&lt;font color=&quot;#5F6B7A&quot;&gt;┄┄&lt;/font&gt; Private operations path&lt;br&gt;&lt;font color=&quot;#C99000&quot;&gt;┄┄&lt;/font&gt; Optional / not live-tested&lt;br&gt;&lt;font color=&quot;#ED7100&quot;&gt;■&lt;/font&gt; Compute &amp; containers &amp;nbsp; &lt;font color=&quot;#8C4FFF&quot;&gt;■&lt;/font&gt; Networking&lt;br&gt;&lt;font color=&quot;#DD344C&quot;&gt;■&lt;/font&gt; Security &amp;nbsp; &lt;font color=&quot;#7AA116&quot;&gt;■&lt;/font&gt; Storage / application" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B6BEC8;strokeWidth=1;fontSize=12;fontColor=#232F3E;align=left;verticalAlign=middle;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1160" width="305" height="175" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-client-api" value="HTTPS + bearer token" style="edgeStyle=isometricEdgeStyle;elbow=vertical;html=1;rounded=0;orthogonalLoop=1;jettySize=auto;strokeColor=#527FFF;strokeWidth=4;endArrow=block;endFill=1;fontSize=12;fontColor=#1F4EA8;labelBackgroundColor=#F5F5F5;" edge="1" parent="1" source="client" target="api-gateway">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-api-vpclink" value="private integration" style="edgeStyle=isometricEdgeStyle;elbow=vertical;html=1;rounded=0;orthogonalLoop=1;jettySize=auto;strokeColor=#527FFF;strokeWidth=4;endArrow=block;endFill=1;fontSize=12;fontColor=#1F4EA8;labelBackgroundColor=#F5F5F5;" edge="1" parent="1" source="api-gateway" target="vpc-link">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-vpclink-alb" value="VPC Link SG → ALB :80" style="edgeStyle=isometricEdgeStyle;elbow=vertical;html=1;rounded=0;orthogonalLoop=1;jettySize=auto;strokeColor=#527FFF;strokeWidth=4;endArrow=block;endFill=1;fontSize=12;fontColor=#1F4EA8;labelBackgroundColor=#F5F5F5;" edge="1" parent="1" source="vpc-link" target="alb">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-alb-laya" value="ALB SG → host :8000" style="edgeStyle=isometricEdgeStyle;elbow=vertical;html=1;rounded=0;orthogonalLoop=1;jettySize=auto;strokeColor=#527FFF;strokeWidth=4;endArrow=block;endFill=1;fontSize=12;fontColor=#1F4EA8;labelBackgroundColor=#F5F5F5;" edge="1" parent="1" source="alb" target="laya-api">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-alb-a" value="" style="edgeStyle=isometricEdgeStyle;elbow=vertical;html=1;rounded=0;strokeColor=#8C4FFF;strokeWidth=2;dashed=1;endArrow=none;" edge="1" parent="1" source="alb" target="alb-az-a">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-alb-b" value="" style="edgeStyle=isometricEdgeStyle;elbow=vertical;html=1;rounded=0;strokeColor=#8C4FFF;strokeWidth=2;dashed=1;endArrow=none;" edge="1" parent="1" source="alb" target="alb-az-b">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-ec2-ecs" value="hosts" style="edgeStyle=isometricEdgeStyle;elbow=vertical;html=1;rounded=0;strokeColor=#ED7100;strokeWidth=3;endArrow=block;endFill=1;fontSize=11;fontColor=#7A3E00;" edge="1" parent="1" source="ec2-gpu" target="ecs-task">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-ecs-laya" value="runs" style="edgeStyle=isometricEdgeStyle;elbow=vertical;html=1;rounded=0;strokeColor=#ED7100;strokeWidth=3;endArrow=block;endFill=1;fontSize=11;fontColor=#7A3E00;" edge="1" parent="1" source="ecs-task" target="laya-api">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-route53-api" value="DNS alias" style="edgeStyle=isometricEdgeStyle;elbow=vertical;html=1;rounded=0;strokeColor=#C99000;strokeWidth=2;dashed=1;dashPattern=8 6;endArrow=block;endFill=1;fontSize=11;fontColor=#7A5A00;" edge="1" parent="1" source="route53" target="api-gateway">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-acm-api" value="TLS certificate" style="edgeStyle=isometricEdgeStyle;elbow=vertical;html=1;rounded=0;strokeColor=#C99000;strokeWidth=2;dashed=1;dashPattern=8 6;endArrow=block;endFill=1;fontSize=11;fontColor=#7A5A00;" edge="1" parent="1" source="acm" target="api-gateway">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-operator-ssm" value="authenticated AWS API" style="edgeStyle=isometricEdgeStyle;elbow=vertical;html=1;rounded=0;strokeColor=#5F6B7A;strokeWidth=3;dashed=1;dashPattern=8 6;endArrow=block;endFill=1;fontSize=12;fontColor=#374151;labelBackgroundColor=#F5F5F5;" edge="1" parent="1" source="operator" target="ssm">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-ssm-ec2" value="Session Manager tunnel" style="edgeStyle=isometricEdgeStyle;elbow=vertical;html=1;rounded=0;strokeColor=#5F6B7A;strokeWidth=3;dashed=1;dashPattern=8 6;endArrow=block;endFill=1;fontSize=12;fontColor=#374151;labelBackgroundColor=#F5F5F5;" edge="1" parent="1" source="ssm" target="ec2-gpu">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-ec2-laya-local" value="localhost:8000" style="edgeStyle=isometricEdgeStyle;elbow=vertical;html=1;rounded=0;strokeColor=#5F6B7A;strokeWidth=3;dashed=1;dashPattern=8 6;endArrow=block;endFill=1;fontSize=11;fontColor=#374151;" edge="1" parent="1" source="ec2-gpu" target="laya-api">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-secrets-task" value="secret injection" style="edgeStyle=isometricEdgeStyle;elbow=vertical;html=1;rounded=0;strokeColor=#DD344C;strokeWidth=2;dashed=1;endArrow=block;endFill=1;fontSize=11;fontColor=#7B1E2C;" edge="1" parent="1" source="secrets" target="ecs-task">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-ecr-task" value="image pull" style="edgeStyle=isometricEdgeStyle;elbow=vertical;html=1;rounded=0;strokeColor=#ED7100;strokeWidth=2;dashed=1;endArrow=block;endFill=1;fontSize=11;fontColor=#7A3E00;" edge="1" parent="1" source="ecr" target="ecs-task">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-task-logs" value="container logs" style="edgeStyle=isometricEdgeStyle;elbow=vertical;html=1;rounded=0;strokeColor=#E7157B;strokeWidth=2;dashed=1;endArrow=block;endFill=1;fontSize=11;fontColor=#8A0D49;" edge="1" parent="1" source="ecs-task" target="cloudwatch">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-alb-s3" value="access logs" style="edgeStyle=isometricEdgeStyle;elbow=vertical;html=1;rounded=0;strokeColor=#7AA116;strokeWidth=2;dashed=1;endArrow=block;endFill=1;fontSize=11;fontColor=#39520B;" edge="1" parent="1" source="alb" target="s3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-laya-igw" value="HTTPS egress" style="edgeStyle=isometricEdgeStyle;elbow=vertical;html=1;rounded=0;strokeColor=#8C4FFF;strokeWidth=3;dashed=1;dashPattern=8 6;endArrow=block;endFill=1;fontSize=11;fontColor=#4B2E83;" edge="1" parent="1" source="laya-api" target="igw">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-igw-hf" value="download checkpoints" style="edgeStyle=isometricEdgeStyle;elbow=vertical;html=1;rounded=0;strokeColor=#8C4FFF;strokeWidth=3;dashed=1;dashPattern=8 6;endArrow=block;endFill=1;fontSize=12;fontColor=#4B2E83;labelBackgroundColor=#F5F5F5;" edge="1" parent="1" source="igw" target="hf">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
