@@ -301,7 +301,6 @@ validated into your own S3 bucket or image.
 | --- | --- |
 | [docs/why-laya-on-aws.md](docs/why-laya-on-aws.md) | Replacing Jev with Laya, and when not to |
 | [docs/architecture.md](docs/architecture.md) | Architecture, networking, IAM, diagram |
-| [docs/laya-aws-architecture-3d.md](docs/laya-aws-architecture-3d.md) | Editable 3D isometric AWS diagram and interpretation guide |
 | [docs/verification-notes.md](docs/verification-notes.md) | Measured results |
 | [NOTICE.md](NOTICE.md) | Third-party licenses and model provenance |
 

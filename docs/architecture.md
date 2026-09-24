@@ -1,10 +1,5 @@
 # Architecture
 
-An editable 3D isometric view of this design is available in
-[`laya-aws-architecture-3d.drawio`](laya-aws-architecture-3d.drawio), with a
-companion interpretation guide in
-[`laya-aws-architecture-3d.md`](laya-aws-architecture-3d.md).
-
 Laya runs as a single Amazon ECS task on one GPU EC2 instance. Everything else
 in the stack exists either to reach that task safely or to keep it from costing
 money when idle.
