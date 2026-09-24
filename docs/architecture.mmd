@@ -1,0 +1,77 @@
+flowchart LR
+    User["Author / operator<br/>AWS CLI default profile"]
+    Client["Local curl client<br/>localhost:8000"]
+    CDK["AWS CDK<br/>TypeScript + Finch"]
+
+    subgraph Account["AWS account 111122223333 · us-west-2"]
+        direction LR
+
+        subgraph Control["Deployment and control plane"]
+            CFN["AWS CloudFormation"]
+            SSM["AWS Systems Manager<br/>Session Manager + Run Command"]
+            SM["AWS Secrets Manager<br/>generated bearer token"]
+            CW["Amazon CloudWatch Logs<br/>7-day retention"]
+            ECR["Amazon ECR<br/>CDK image asset"]
+        end
+
+        subgraph VPC["Dedicated VPC · 10.0.0.0/16"]
+            direction TB
+            IGW["Internet gateway"]
+
+            subgraph PublicSubnet["Public subnet · one Availability Zone"]
+                LT["EC2 launch template<br/>AL2023 ECS GPU AMI"]
+                ASG["EC2 Auto Scaling group<br/>min 0 · desired 0/1 · max 1"]
+                EC2["g4dn.xlarge<br/>NVIDIA T4 · public IPv4"]
+                ECS["Amazon ECS cluster<br/>EC2 capacity provider"]
+                Task["Laya ECS task<br/>bridge mode · host port 8000<br/>1 GPU · 8 GiB reservation"]
+                Cache["Encrypted 100 GiB gp3<br/>image + model cache"]
+                SG["Security group<br/>no inbound rules<br/>all outbound"]
+            end
+        end
+    end
+
+    HF["Hugging Face<br/>Laya model checkpoints"]
+    PyPI["PyPI + PyTorch index<br/>container build dependencies"]
+
+    User -->|"deploy / inspect"| CDK
+    CDK -->|"assume CDK bootstrap roles"| CFN
+    CDK -->|"build and publish image"| ECR
+    CFN --> LT
+    CFN --> ASG
+    CFN --> ECS
+    ASG --> EC2
+    LT --> EC2
+    SG --- EC2
+    EC2 --> Task
+    ECS --> Task
+    Task --- Cache
+    ECR -->|"image pull"| Task
+    SM -->|"secret injected at task start"| Task
+    Task -->|"application logs"| CW
+    Task -->|"first-start model download"| IGW
+    EC2 -->|"SSM agent over HTTPS"| SSM
+    User -->|"interactive port-forwarding or Run Command"| SSM
+    Client -. "encrypted SSM tunnel" .-> SSM
+    SSM -. "127.0.0.1:8000" .-> Task
+    EC2 -->|"outbound through public IPv4"| IGW
+    IGW --> HF
+    CDK --> PyPI
+
+    classDef operator fill:#dbeafe,stroke:#2563eb,color:#172554,stroke-width:2px;
+    classDef control fill:#ede9fe,stroke:#7c3aed,color:#2e1065,stroke-width:2px;
+    classDef network fill:#ffedd5,stroke:#ea580c,color:#431407,stroke-width:2px;
+    classDef compute fill:#dcfce7,stroke:#16a34a,color:#052e16,stroke-width:2px;
+    classDef security fill:#fef3c7,stroke:#d97706,color:#451a03,stroke-width:2px;
+    classDef external fill:#f3f4f6,stroke:#6b7280,color:#111827,stroke-width:2px;
+
+    class User,Client,CDK operator;
+    class CFN,SSM,CW,ECR control;
+    class IGW network;
+    class LT,ASG,EC2,ECS,Task,Cache compute;
+    class SM,SG security;
+    class HF,PyPI external;
+
+    style Account fill:#faf5ff,stroke:#7c3aed,stroke-width:2px
+    style Control fill:#f5f3ff,stroke:#a78bfa,stroke-width:1px
+    style VPC fill:#fff7ed,stroke:#f97316,stroke-width:2px
+    style PublicSubnet fill:#f0fdf4,stroke:#22c55e,stroke-width:1px

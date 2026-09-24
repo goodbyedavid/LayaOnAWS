@@ -1,0 +1,22 @@
+{
+  "name": "laya-aws-verification",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "synth": "npm run build && CDK_DOCKER=finch cdk synth -c capacity=0",
+    "diff": "npm run build && CDK_DOCKER=finch cdk diff -c capacity=0",
+    "deploy:idle": "npm run build && CDK_DOCKER=finch cdk deploy -c capacity=0",
+    "deploy:gpu": "npm run build && CDK_DOCKER=finch cdk deploy -c capacity=1",
+    "destroy": "npm run build && CDK_DOCKER=finch cdk destroy"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "^2.220.0",
+    "constructs": "^10.4.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "aws-cdk": "^2.220.0",
+    "typescript": "^5.9.0"
+  }
+}

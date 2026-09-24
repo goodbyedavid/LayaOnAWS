@@ -1,0 +1,6 @@
+{
+  "app": "node --enable-source-maps dist/bin/laya-verification.js",
+  "context": {
+    "@aws-cdk/aws-ec2:restrictDefaultSecurityGroup": true
+  }
+}

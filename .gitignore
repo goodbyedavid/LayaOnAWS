@@ -1,0 +1,11 @@
+cdk.out/
+cdk.context.json
+cdk-outputs.json
+dist/
+node_modules/
+.env
+*.log
+live-verification.txt
+cdk.out.*/
+__pycache__/
+*.pyc

@@ -1,0 +1,20 @@
+{
+  "model": "jev-1",
+  "state": {
+    "from": "user@example.com",
+    "subject": "Duplicate charge",
+    "body": "We were billed twice for March. Please refund the duplicate charge."
+  },
+  "questions": {
+    "department": {
+      "type": "choice",
+      "instructions": "Which department should handle this request?",
+      "criteria": {
+        "billing": "Invoices, payments, duplicate charges, and refunds",
+        "technical": "Bugs, outages, and system errors",
+        "sales": "Pricing, proposals, and new contracts",
+        "other": "Everything else"
+      }
+    }
+  }
+}
