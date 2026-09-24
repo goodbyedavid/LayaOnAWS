@@ -27,7 +27,8 @@ scale_down() {
   if [[ "$gpu_deployment_attempted" -eq 1 && "$gpu_scaled_down" -eq 0 ]]; then
     log "Returning ECS and Auto Scaling desired capacity to zero"
     if AWS_PROFILE="$profile" AWS_REGION="$region" CDK_DOCKER=finch \
-      npx cdk deploy "$stack_name" -c capacity=0 --require-approval never \
+      npx cdk deploy "$stack_name" -c capacity=0 -c hostBenchmarkAccess=true \
+      --require-approval never \
       --outputs-file cdk-outputs.json 2>&1 | tee -a "$results_file"; then
       gpu_scaled_down=1
     else
@@ -132,19 +133,24 @@ fi
 log "Building the CDK application"
 npm run build 2>&1 | tee -a "$results_file"
 
+# hostBenchmarkAccess lets the instance role read the bearer token so the
+# benchmark never puts it in an SSM command parameter. It is off by default in
+# the stack; this workflow needs it.
 log "Deploying one g4dn.xlarge GPU instance"
 gpu_deployment_attempted=1
 AWS_PROFILE="$profile" AWS_REGION="$region" CDK_DOCKER=finch \
-  npx cdk deploy "$stack_name" -c capacity=1 --require-approval never \
+  npx cdk deploy "$stack_name" -c capacity=1 -c hostBenchmarkAccess=true \
+  --require-approval never \
   --outputs-file cdk-outputs.json 2>&1 | tee -a "$results_file"
 
-log "Running GPU, health, model revision, inference, and latency checks"
+log "Running GPU, health, auth, inference, and questions-per-call latency checks"
 AWS_PROFILE="$profile" AWS_REGION="$region" \
-  scripts/verify-remote.sh 2>&1 | tee -a "$results_file"
+  scripts/benchmark-remote.sh 2>&1 | tee -a "$results_file"
 
 log "Scaling the deployed stack to zero GPU capacity"
 AWS_PROFILE="$profile" AWS_REGION="$region" CDK_DOCKER=finch \
-  npx cdk deploy "$stack_name" -c capacity=0 --require-approval never \
+  npx cdk deploy "$stack_name" -c capacity=0 -c hostBenchmarkAccess=true \
+  --require-approval never \
   --outputs-file cdk-outputs.json 2>&1 | tee -a "$results_file"
 gpu_scaled_down=1
 

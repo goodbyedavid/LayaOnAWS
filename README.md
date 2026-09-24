@@ -113,16 +113,20 @@ npm run deploy:gpu     # launches one g4dn.xlarge
 ```
 
 Wait for the ECS task to report healthy, then run the automated check over
-Systems Manager:
+Systems Manager. It needs the instance role to read the token, which is off by
+default:
 
 ```bash
-scripts/verify-remote.sh
+CDK_DOCKER=finch npx cdk deploy LayaVerificationStack \
+  -c capacity=1 -c hostBenchmarkAccess=true --require-approval never
+
+scripts/benchmark-remote.sh
 ```
 
-It reports the GPU, the health response, model snapshot revisions, one real
-inference response, warm latency, and GPU memory. The bearer token is never
-placed in the SSM command parameters; the remote host fetches it itself using
-the instance role.
+It reports the GPU, the health response, rejection of an unauthenticated
+request, model snapshot revisions, a real inference response, the latency sweep,
+and GPU memory. The bearer token is never placed in the SSM command parameters;
+the remote host fetches it itself using the instance role.
 
 For interactive access, install the Session Manager plugin and run, in one
 terminal:
@@ -229,7 +233,7 @@ QUESTION_COUNTS=1,5 SAMPLES=30 scripts/benchmark-remote.sh
 `hostBenchmarkAccess` lets the EC2 instance role read the API token, which means
 any process on the host, and anyone with SSM shell access to it, can read it.
 Leave it off for production, and redeploy without it when benchmarking is done.
-`scripts/verify-remote.sh` needs the same grant.
+Leave it off for production, and redeploy without it when benchmarking is done.
 
 Read the percentiles with the sample count in mind. At twenty samples a p95 is
 one observation, not a converged tail estimate.
@@ -297,8 +301,6 @@ validated into your own S3 bucket or image.
 | --- | --- |
 | [docs/why-laya-on-aws.md](docs/why-laya-on-aws.md) | Why this exists, and when not to use it |
 | [docs/architecture.md](docs/architecture.md) | Architecture, networking, IAM, diagram |
-| [docs/deployment-plan.md](docs/deployment-plan.md) | Deployment, rollback, cost plan |
-| [docs/test-plan.md](docs/test-plan.md) | Acceptance criteria and evidence |
 | [docs/verification-notes.md](docs/verification-notes.md) | Measured results |
 | [NOTICE.md](NOTICE.md) | Third-party licenses and model provenance |
 

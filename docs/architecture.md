@@ -1,195 +1,137 @@
-# Architecture design
+# Architecture
 
-## Purpose
+Laya runs as a single Amazon ECS task on one GPU EC2 instance. Everything else
+in the stack exists either to reach that task safely or to keep it from costing
+money when idle.
 
-This stack verifies that Laya can provide the Jev-compatible
-`POST /v1/systemone` API on an AWS GPU instance. It is a private proof
-environment for validating compatibility, startup behavior, GPU memory, and
-warm inference latency before publishing a deployment guide.
-
-The verification stack does not expose Laya as a public internet service.
-Interactive requests use an AWS Systems Manager port-forwarding tunnel.
-Automated tests use Systems Manager Run Command and call Laya from the EC2
-host through `127.0.0.1:8000`.
-
-## Color-coded AWS architecture
-
-The editable Mermaid source is also available in
-[`architecture.mmd`](architecture.mmd).
+There are two access paths, and the public one is opt-in.
 
 ```mermaid
 flowchart LR
-    User["Author / operator<br/>AWS CLI default profile"]
-    Client["Local curl client<br/>localhost:8000"]
-    CDK["AWS CDK<br/>TypeScript + Finch"]
+    Client["Client<br/>existing Jev SDK"]
+    Operator["Operator<br/>AWS CLI"]
 
-    subgraph Account["AWS account 111122223333 · us-west-2"]
+    subgraph Account["AWS account · one region"]
         direction LR
 
-        subgraph Control["Deployment and control plane"]
-            CFN["AWS CloudFormation"]
-            SSM["AWS Systems Manager<br/>Session Manager + Run Command"]
-            SM["AWS Secrets Manager<br/>generated bearer token"]
-            CW["Amazon CloudWatch Logs<br/>7-day retention"]
+        subgraph Control["Control plane"]
+            SM["Secrets Manager<br/>generated bearer token"]
+            CW["CloudWatch Logs<br/>7-day retention"]
             ECR["Amazon ECR<br/>CDK image asset"]
+            SSM["Systems Manager<br/>Session Manager + Run Command"]
         end
 
-        subgraph VPC["Dedicated VPC · 10.0.0.0/16"]
+        subgraph Ingress["Public endpoint · opt-in"]
+            APIGW["API Gateway HTTP API<br/>HTTPS on *.execute-api<br/>throttled"]
+            VPCL["VPC link"]
+        end
+
+        subgraph VPC["VPC · 10.0.0.0/16 · 2 Availability Zones"]
             direction TB
             IGW["Internet gateway"]
+            ALB["Internal ALB<br/>target: instance:8000"]
+            S3["S3<br/>access logs, 30-day expiry"]
 
-            subgraph PublicSubnet["Public subnet · one Availability Zone"]
-                LT["EC2 launch template<br/>AL2023 ECS GPU AMI"]
-                ASG["EC2 Auto Scaling group<br/>min 0 · desired 0/1 · max 1"]
-                EC2["g4dn.xlarge<br/>NVIDIA T4 · public IPv4"]
-                ECS["Amazon ECS cluster<br/>EC2 capacity provider"]
-                Task["Laya ECS task<br/>bridge mode · host port 8000<br/>1 GPU · 8 GiB reservation"]
-                Cache["Encrypted 100 GiB gp3<br/>image + model cache"]
-                SG["Security group<br/>no inbound rules<br/>all outbound"]
+            subgraph Compute["Public subnets"]
+                ASG["Auto Scaling group<br/>launch template<br/>min 0 · max 1"]
+                EC2["g4dn.xlarge<br/>NVIDIA T4 · IMDSv2"]
+                Task["Laya task<br/>bridge · host port 8000<br/>1 GPU"]
+                Cache["Encrypted 100 GiB gp3<br/>model + Triton cache"]
             end
         end
     end
 
-    HF["Hugging Face<br/>Laya model checkpoints"]
-    PyPI["PyPI + PyTorch index<br/>container build dependencies"]
+    HF["Hugging Face<br/>checkpoints"]
 
-    User -->|"deploy / inspect"| CDK
-    CDK -->|"assume CDK bootstrap roles"| CFN
-    CDK -->|"build and publish image"| ECR
-    CFN --> LT
-    CFN --> ASG
-    CFN --> ECS
-    ASG --> EC2
-    LT --> EC2
-    SG --- EC2
-    EC2 --> Task
-    ECS --> Task
-    Task --- Cache
+    Client -->|"HTTPS"| APIGW
+    APIGW --> VPCL --> ALB --> Task
+    ALB -.-> S3
+    Operator -->|"port forward / Run Command"| SSM
+    SSM -.->|"127.0.0.1:8000"| Task
+    ASG --> EC2 --> Task
     ECR -->|"image pull"| Task
-    SM -->|"secret injected at task start"| Task
-    Task -->|"application logs"| CW
-    Task -->|"first-start model download"| IGW
-    EC2 -->|"SSM agent over HTTPS"| SSM
-    User -->|"interactive port-forwarding or Run Command"| SSM
-    Client -. "encrypted SSM tunnel" .-> SSM
-    SSM -. "127.0.0.1:8000" .-> Task
-    EC2 -->|"outbound through public IPv4"| IGW
-    IGW --> HF
-    CDK --> PyPI
+    SM -->|"injected at task start"| Task
+    Task --> CW
+    Task --- Cache
+    Task -->|"first start only"| IGW --> HF
 
-    classDef operator fill:#dbeafe,stroke:#2563eb,color:#172554,stroke-width:2px;
-    classDef control fill:#ede9fe,stroke:#7c3aed,color:#2e1065,stroke-width:2px;
-    classDef network fill:#ffedd5,stroke:#ea580c,color:#431407,stroke-width:2px;
-    classDef compute fill:#dcfce7,stroke:#16a34a,color:#052e16,stroke-width:2px;
-    classDef security fill:#fef3c7,stroke:#d97706,color:#451a03,stroke-width:2px;
-    classDef external fill:#f3f4f6,stroke:#6b7280,color:#111827,stroke-width:2px;
+    classDef op fill:#dbeafe,stroke:#2563eb,color:#172554,stroke-width:2px;
+    classDef ctl fill:#ede9fe,stroke:#7c3aed,color:#2e1065,stroke-width:2px;
+    classDef net fill:#ffedd5,stroke:#ea580c,color:#431407,stroke-width:2px;
+    classDef comp fill:#dcfce7,stroke:#16a34a,color:#052e16,stroke-width:2px;
+    classDef ext fill:#f3f4f6,stroke:#6b7280,color:#111827,stroke-width:2px;
 
-    class User,Client,CDK operator;
-    class CFN,SSM,CW,ECR control;
-    class IGW network;
-    class LT,ASG,EC2,ECS,Task,Cache compute;
-    class SM,SG security;
-    class HF,PyPI external;
-
-    style Account fill:#faf5ff,stroke:#7c3aed,stroke-width:2px
-    style Control fill:#f5f3ff,stroke:#a78bfa,stroke-width:1px
-    style VPC fill:#fff7ed,stroke:#f97316,stroke-width:2px
-    style PublicSubnet fill:#f0fdf4,stroke:#22c55e,stroke-width:1px
+    class Client,Operator op;
+    class SM,CW,ECR,SSM ctl;
+    class APIGW,VPCL,IGW,ALB,S3 net;
+    class ASG,EC2,Task,Cache comp;
+    class HF ext;
 ```
 
-### Color key
+## The two paths
 
-| Color | Meaning |
+**Public, with `-c publicEndpoint=true`.** API Gateway terminates TLS on its
+generated `*.execute-api` hostname, so no domain or Route 53 hosted zone is
+needed. A `$default` route forwards the request path unchanged, which is what
+preserves `POST /v1/systemone` and lets an existing Jev client change only its
+base URL. The `Authorization` header passes through untouched, because
+authentication stays Laya's own bearer check inside the container. A custom
+domain is optional and only changes the front door.
+
+**Private, the default.** No load balancer and no inbound security group rules
+at all. Operators reach Laya through Systems Manager, either port forwarding to
+`localhost:8000` or Run Command executing against `127.0.0.1:8000` on the host.
+This path costs nothing while idle and is how the benchmark harness runs.
+
+## Why these choices
+
+| Decision | Reason |
 | --- | --- |
-| Blue | Operator and local tooling |
-| Purple | AWS deployment and managed control services |
-| Orange | Network boundary and routing |
-| Green | GPU compute, ECS runtime, and storage |
-| Yellow | Security controls and credentials |
-| Gray | External package and model sources |
+| One `g4dn.xlarge` | The T4 is the cheapest current inference GPU, and both checkpoints fit in 4.1 of its 15.4 GiB |
+| Capacity 0 by default | A repository strangers clone must not quietly bill $380 a month |
+| ECS on EC2, not a managed endpoint | A managed endpoint's invocation path would break the drop-in protocol match |
+| API Gateway in front of an internal ALB | Trusted TLS with no domain, and nothing in the data path exposed to the internet |
+| Throttling at API Gateway, not WAF | WAF cannot attach to an HTTP API, and Laya serialises inference through one worker so a rate limit is the control that matters |
+| Two Availability Zones | An ALB requires two subnets, and a second AZ gives the Auto Scaling group another chance at scarce GPU capacity |
+| Public subnets, no NAT gateway | A NAT gateway would become the dominant idle cost of a stack designed to scale to zero |
+| Bearer token in Secrets Manager | Keeps credentials out of source and out of CloudFormation parameters |
+| 100 GiB encrypted gp3 root volume | Holds a 7.2 GB image plus checkpoints and the Triton cache |
 
-## Request paths
+## Security posture
 
-### Automated verification
+There are no CIDR-based ingress rules in any configuration. With the public
+endpoint enabled, the only rules are security group to security group: port 80
+to the load balancer from the VPC link, and port 8000 to the GPU host from the
+load balancer.
 
-1. `scripts/verify-remote.sh` discovers the ECS container instance.
-2. The AWS CLI submits an `AWS-RunShellScript` command through Systems Manager.
-3. The command runs on the GPU host, retrieves the generated API key using the
-   scoped instance role, and calls `127.0.0.1:8000`.
-4. The command reports GPU details, health, model revisions, one response,
-   twenty warm latency samples, and GPU memory usage.
+The task execution role can pull only this stack's image, write only to its log
+group, and read only the generated secret. The task role holds no permissions.
 
-No inbound VPC rule is required for this path.
+The EC2 instance role can read the bearer token **only** when
+`-c hostBenchmarkAccess=true` is set. That grant exists so the benchmark can
+fetch the token on the host rather than passing it through SSM command
+parameters, which are retained in command history and CloudTrail. It is off by
+default, because it also means any process on the host can read the token.
+Leave it off in production.
 
-### Interactive verification
+IMDSv2 is required, the root volume is encrypted, the container runs as a
+non-root user, and load balancer access logs land in an encrypted bucket with
+public access blocked and a 30-day expiry.
 
-1. `scripts/connect.sh` opens a Session Manager port-forwarding session.
-2. Local port `8000` is encrypted through Systems Manager to port `8000` on
-   the GPU host.
-3. `scripts/verify.sh` calls `localhost:8000`, which reaches the Laya task
-   through the tunnel.
+## Accepted limitations
 
-### Outbound internet path
+The GPU host sits in a public subnet with a public IPv4 address. Inbound is
+restricted to the load balancer, or denied entirely on the private path, but a
+stricter design would use private subnets with a NAT gateway. That was rejected
+on cost.
 
-The instance is in a public subnet and receives a public IPv4 address. Its
-default route uses the internet gateway. This allows the ECS agent to reach AWS
-public endpoints and lets Laya download model checkpoints from Hugging Face.
-The security group permits outbound traffic and has no inbound rules.
+The hop from the load balancer to the container is plaintext HTTP inside the
+VPC, so the bearer token is not encrypted on that segment.
 
-A public production API would require a separate ingress design such as
-Route 53, ACM, WAF, and an Application Load Balancer or API Gateway. Those
-components are intentionally outside this verification stack.
+The stack runs one task on one instance and is not highly available. Returning
+capacity to zero deletes the model and Triton caches with the instance, so the
+next cold start pays for both again.
 
-## Resource design
-
-| Area | Current design | Reason |
-| --- | --- | --- |
-| Compute | One On-Demand `g4dn.xlarge` | NVIDIA T4 provides a low-cost first GPU target |
-| Scheduling | ECS EC2 capacity provider | Expresses the one-GPU task requirement |
-| Capacity | Context-controlled `0` or `1` | Makes the safe default zero and bounds spend |
-| Image | CDK Docker asset in bootstrap ECR | Reproducible deployment from the project |
-| Operating system | ECS-optimized Amazon Linux 2023 GPU AMI | Includes ECS and NVIDIA integration |
-| Storage | Encrypted 100 GiB gp3 root volume | Holds the large image and first-start model cache |
-| Networking | One public subnet, internet gateway, no NAT | Supports downloads without NAT hourly cost |
-| Ingress | No security-group inbound rules | Keeps the proof private |
-| Administration | Systems Manager | Avoids SSH keys and inbound SSH |
-| Authentication | Generated bearer token in Secrets Manager | Avoids credentials in source or parameters |
-| Logging | CloudWatch Logs, seven-day retention | Captures startup and inference diagnostics |
-| Metadata | IMDSv2 required | Hardens instance metadata access |
-
-## IAM and credential flow
-
-The local AWS CLI obtains credentials from the shared credentials file using
-the `default` profile. The last verified caller was:
-
-```text
-arn:aws:iam::111122223333:user/EXAMPLE-USER
-```
-
-CDK uses the bootstrapped roles in `us-west-2`:
-
-- `cdk-hnb659fds-lookup-role-111122223333-us-west-2`
-- `cdk-hnb659fds-deploy-role-111122223333-us-west-2`
-- `cdk-hnb659fds-image-publishing-role-111122223333-us-west-2`
-- `cdk-hnb659fds-file-publishing-role-111122223333-us-west-2`
-- `cdk-hnb659fds-cfn-exec-role-111122223333-us-west-2`
-
-The EC2 instance role has standard ECS registration permissions, Systems
-Manager permissions, and read access to only the generated Laya secret. The
-task execution role can pull the ECR image, write logs, and retrieve the same
-secret for container injection.
-
-Granting the instance role secret access exists only to support the automated
-host-side verification script. A production design should remove that grant
-and use an application-facing authentication flow.
-
-## Availability and recovery limits
-
-This proof uses one Availability Zone and one GPU instance. It does not provide
-high availability. ECS deployment rollback is enabled, the Auto Scaling group
-cannot exceed one instance, and the deployment script attempts a zero-capacity
-rollback on exit.
-
-The model cache is on the instance root volume and is deleted with the
-instance. Returning capacity to zero therefore saves compute and EBS cost but
-requires checkpoint downloads on the next cold start.
+Model checkpoint revisions are not pinned, because the current `laya-serve`
+contract does not expose that control. For production, mirror the checkpoints
+you validated into your own S3 bucket or into the image.
